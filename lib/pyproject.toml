@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ruvic-splunk-connector"
+version = "1.0.0"
+description = "Conector Ruvic para Splunk: ejecutar búsquedas SPL, listar índices, y obtener resultados de un job de búsqueda"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31,<3.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["ruvic_splunk_connector*"]

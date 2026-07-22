@@ -1,0 +1,57 @@
+{
+  "id": "splunk",
+  "name": "Splunk",
+  "name_en": "Splunk",
+  "version": "1.0.0",
+  "description": "Consulta de eventos y búsquedas en Splunk: ejecutar una búsqueda SPL, listar índices, y obtener los resultados de un job de búsqueda.",
+  "description_en": "Query events and searches in Splunk: run an SPL search, list indexes, and get the results of a search job.",
+  "category": "cybersecurity",
+  "category_en": "cybersecurity",
+  "keywords": ["splunk", "spl", "siem", "logs", "eventos", "events", "indices", "indexes", "ciberseguridad", "cybersecurity"],
+  "icon": "icon.svg",
+  "library": {
+    "package": "ruvic-splunk-connector",
+    "install": "pip install git+https://github.com/tu-org/conector-splunk.git#subdirectory=lib",
+    "import_name": "ruvic_splunk_connector"
+  },
+  "auth_modes": [
+    {
+      "id": "token",
+      "label": "Token de autenticación (recomendado)",
+      "fields": [
+        { "key": "base_url", "label": "URL del puerto de administración", "type": "text", "required": true, "placeholder": "https://splunk.miempresa.com:8089", "help_text": "Incluye el puerto de administración (8089 por defecto), no el puerto web (8000)." },
+        { "key": "token", "label": "Token", "type": "password", "secret": true, "required": true, "help_text": "Generado por un administrador en Settings → Tokens de Splunk." },
+        { "key": "verify_ssl", "label": "Verificar certificado SSL", "type": "boolean", "required": false, "default": "true", "help_text": "Muchas instalaciones de Splunk usan certificados autofirmados en el puerto de administración — desactívalo solo si sabes que es tu caso y confías en la red." },
+        { "key": "allow_write_commands", "label": "Permitir comandos SPL de escritura/ejecución", "type": "boolean", "required": false, "default": "false" },
+        { "key": "default_earliest_time", "label": "Rango de tiempo por defecto", "type": "text", "required": false, "default": "-24h", "help_text": "Se aplica cuando una búsqueda no especifica su propio earliest_time. Evita búsquedas accidentalmente sobre 'todo el tiempo'." },
+        { "key": "max_wait_seconds", "label": "Espera máxima por un job (segundos)", "type": "number", "required": false, "default": "60" },
+        { "key": "request_timeout", "label": "Timeout de peticiones (segundos)", "type": "number", "required": false, "default": "30" }
+      ]
+    },
+    {
+      "id": "basic",
+      "label": "Usuario y contraseña",
+      "fields": [
+        { "key": "base_url", "label": "URL del puerto de administración", "type": "text", "required": true, "placeholder": "https://splunk.miempresa.com:8089" },
+        { "key": "username", "label": "Usuario", "type": "text", "required": true },
+        { "key": "password", "label": "Contraseña", "type": "password", "secret": true, "required": true },
+        { "key": "verify_ssl", "label": "Verificar certificado SSL", "type": "boolean", "required": false, "default": "true" },
+        { "key": "allow_write_commands", "label": "Permitir comandos SPL de escritura/ejecución", "type": "boolean", "required": false, "default": "false" },
+        { "key": "default_earliest_time", "label": "Rango de tiempo por defecto", "type": "text", "required": false, "default": "-24h" },
+        { "key": "max_wait_seconds", "label": "Espera máxima por un job (segundos)", "type": "number", "required": false, "default": "60" },
+        { "key": "request_timeout", "label": "Timeout de peticiones (segundos)", "type": "number", "required": false, "default": "30" }
+      ]
+    }
+  ],
+  "env_prefix": "RUVIC_SPLUNK_",
+  "operations": [
+    "siem.execute_spl_search",
+    "siem.list_indexes",
+    "siem.get_job_results"
+  ],
+  "test_connection": true,
+  "docs": {
+    "skill": "SKILL.md",
+    "permissions_note": "El usuario/token necesita, como mínimo, el rol 'user' de Splunk con capacidad 'search' sobre los índices que el agente vaya a consultar. No uses una cuenta con rol 'admin'. Por defecto, este conector bloquea comandos SPL que escriben o ejecutan algo fuera de la búsqueda (delete, outputlookup, collect, script, sendemail, etc.) — si necesitas permitirlos, actívalo explícitamente y confirma que la cuenta tenga las capacidades específicas de Splunk requeridas para esos comandos."
+  }
+}

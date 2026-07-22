@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Conector Splunk — Ruvic</title>
+  <link rel="stylesheet" href="assets/ruvic.css">
+</head>
+<body>
+  <main class="ruvic-container">
+    <nav class="ruvic-toc" aria-label="Índice">
+      <h2 data-i18n="toc_titulo">Contenido</h2>
+      <ol>
+        <li><a href="#que-es" data-i18n="toc_que_es">¿Qué es y para qué sirve?</a></li>
+        <li><a href="#prerrequisitos" data-i18n="toc_prerrequisitos">Prerrequisitos</a></li>
+        <li><a href="#configuracion-fabricante" data-i18n="toc_fabricante">Configuración en el fabricante</a></li>
+        <li><a href="#permisos" data-i18n="toc_permisos">Permisos requeridos</a></li>
+        <li><a href="#configuracion-ruvic" data-i18n="toc_ruvic">Configuración en Ruvic</a></li>
+        <li><a href="#verificacion" data-i18n="toc_verificacion">Verificación</a></li>
+        <li><a href="#solucion-problemas" data-i18n="toc_problemas">Solución de problemas</a></li>
+        <li><a href="#faq-seguridad" data-i18n="toc_faq">Preguntas frecuentes y notas de seguridad</a></li>
+      </ol>
+    </nav>
+
+    <h1 data-i18n="titulo">Conector Splunk</h1>
+    <p class="guide-updated">{{ULTIMA_ACTUALIZACION}}</p>
+
+    <section>
+      <h2 id="que-es" data-i18n="que_es_h2">¿Qué es y para qué sirve?</h2>
+      <p data-i18n="que_es_p1">El conector Splunk permite que el agente de Ruvic consulte eventos y logs indexados en Splunk — ejecutar búsquedas SPL, explorar qué índices existen, y revisar el resultado de una búsqueda anterior.</p>
+      <p data-i18n="que_es_p2">Una vez configurado, puedes pedirle al agente cosas como:</p>
+      <ul>
+        <li data-i18n="que_es_li1">"¿Qué eventos de error hubo en las últimas 4 horas?"</li>
+        <li data-i18n="que_es_li2">"¿Qué índices hay disponibles?"</li>
+        <li data-i18n="que_es_li3">"Revisa el resultado de esa búsqueda que quedó corriendo."</li>
+      </ul>
+      <p data-i18n="que_es_p3">Operaciones soportadas:</p>
+      <table>
+        <thead><tr><th data-i18n="tabla_op_col1">Operación</th><th data-i18n="tabla_op_col2">Qué hace</th></tr></thead>
+        <tbody>
+          <tr><td><code>siem.execute_spl_search</code></td><td data-i18n="tabla_op_fila1">Ejecuta una búsqueda SPL y trae sus resultados</td></tr>
+          <tr><td><code>siem.list_indexes</code></td><td data-i18n="tabla_op_fila2">Lista los índices disponibles</td></tr>
+          <tr><td><code>siem.get_job_results</code></td><td data-i18n="tabla_op_fila3">Consulta los resultados de un job de búsqueda existente</td></tr>
+        </tbody>
+      </table>
+      <div class="callout callout-info">
+        <span class="callout-title" data-i18n="callout_seguridad_titulo">Protección de seguridad incorporada</span>
+        <span data-i18n="callout_seguridad_texto">Por defecto, este conector bloquea comandos SPL que escriben o ejecutan algo fuera de la propia búsqueda (delete, outputlookup, collect, script, sendemail, etc.) — solo consulta datos.</span>
+      </div>
+    </section>
+
+    <section>
+      <h2 id="prerrequisitos" data-i18n="prereq_h2">Prerrequisitos</h2>
+      <ul>
+        <li data-i18n="prereq_li1">Un servidor <strong>Splunk</strong> (Enterprise o Cloud) accesible por red desde donde corre Ruvic, con el puerto de administración (8089 por defecto) abierto.</li>
+        <li data-i18n="prereq_li2">Un <strong>usuario o token dedicado</strong> a esta integración — nunca una cuenta administrativa.</li>
+        <li data-i18n="prereq_li3">Para pruebas: puedes levantar un Splunk local con Docker en vez de conectarte a un ambiente productivo (ver sección de <a href="#verificacion">Verificación</a>).</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 id="configuracion-fabricante" data-i18n="fabricante_h2">Configuración en el fabricante</h2>
+
+      <h3 data-i18n="fabricante_camino_a_titulo">Camino A — Token de autenticación (recomendado)</h3>
+      <ol class="ruvic-steps">
+        <li><strong data-i18n="fabricante_a_paso1_titulo">Pide al administrador de Splunk que cree un token.</strong> <span data-i18n="fabricante_a_paso1_texto">En Splunk Web: Settings → Tokens → New Token, asociado a un usuario de servicio (no admin) con el rol adecuado.</span></li>
+        <li><strong data-i18n="fabricante_a_paso2_titulo">Confirma la URL del puerto de administración.</strong> <span data-i18n="fabricante_a_paso2_texto">Normalmente es la misma URL de Splunk Web pero con el puerto 8089 en vez del 8000.</span></li>
+      </ol>
+
+      <h3 data-i18n="fabricante_camino_b_titulo">Camino B — Usuario y contraseña</h3>
+      <ol class="ruvic-steps">
+        <li><strong data-i18n="fabricante_b_paso1_titulo">Pide al administrador un usuario de servicio dedicado.</strong> <span data-i18n="fabricante_b_paso1_texto">Con rol "user" y capacidad de búsqueda ("search") sobre los índices necesarios.</span></li>
+      </ol>
+
+      <p data-i18n="fabricante_curl_intro">Prueba desde línea de comandos (opcional pero recomendado):</p>
+      <pre><code>curl -k -u usuario:contraseña \
+  "https://TU_SERVIDOR:8089/services/data/indexes?output_mode=json&count=1"</code></pre>
+      <p data-i18n="fabricante_curl_nota">Una respuesta con datos de índices confirma que las credenciales funcionan.</p>
+    </section>
+
+    <section>
+      <h2 id="permisos" data-i18n="permisos_h2">Permisos requeridos</h2>
+      <table>
+        <thead><tr><th data-i18n="permisos_tabla_col1">Permiso</th><th data-i18n="permisos_tabla_col2">Para qué lo usa el conector</th></tr></thead>
+        <tbody>
+          <tr><td data-i18n="permisos_search">Capacidad "search" sobre los índices relevantes</td><td data-i18n="permisos_search_uso">Necesario para las 3 operaciones</td></tr>
+        </tbody>
+      </table>
+      <p data-i18n="permisos_nota">No otorgues el rol "admin" — el conector solo necesita poder buscar, no administrar la plataforma.</p>
+    </section>
+
+    <section>
+      <h2 id="configuracion-ruvic" data-i18n="ruvic_h2">Configuración en Ruvic</h2>
+      <p data-i18n="ruvic_p1">Entra a <strong>Settings → Conectores</strong>, busca la tarjeta <strong>Splunk</strong> y pulsa <strong>Configurar</strong>. Elige el modo (token o usuario/contraseña) según lo que tengas.</p>
+      <p data-i18n="ruvic_p2">Completa la <strong>URL del puerto de administración</strong> (incluyendo <code>:8089</code>) y las credenciales del modo elegido.</p>
+      <p data-i18n="ruvic_p3">Guarda y pulsa <span class="ruvic-button" data-i18n="boton_probar_conexion">Probar conexión</span>.</p>
+    </section>
+
+    <section>
+      <h2 id="verificacion" data-i18n="verificacion_h2">Verificación</h2>
+      <ol class="ruvic-steps">
+        <li>
+          <strong data-i18n="verificacion_paso1_titulo">Test de conexión exitoso.</strong>
+          <p data-i18n="verificacion_paso1_texto">El botón <em>Probar conexión</em> debe responder: <em>"Conexión exitosa a [URL] (modo: ...)"</em>.</p>
+        </li>
+        <li>
+          <strong data-i18n="verificacion_paso2_titulo">Prueba mínima con el agente.</strong>
+          <p data-i18n="verificacion_paso2_texto">Pide algo de solo lectura primero:</p>
+          <blockquote data-i18n="verificacion_paso2_cita">"¿Qué índices hay disponibles?"</blockquote>
+        </li>
+      </ol>
+      <p data-i18n="verificacion_docker_intro">Para probar sin depender de un Splunk productivo, puedes levantar uno local con Docker:</p>
+      <pre><code>docker run -d --name splunk-test -p 8089:8089 -p 8000:8000 \
+  -e SPLUNK_START_ARGS='--accept-license' \
+  -e SPLUNK_PASSWORD='ContraseñaSegura123!' \
+  splunk/splunk:latest</code></pre>
+      <p data-i18n="verificacion_docker_nota">Espera 1-2 minutos a que Splunk termine de iniciar antes de probar la conexión.</p>
+    </section>
+
+    <section>
+      <h2 id="solucion-problemas" data-i18n="problemas_h2">Solución de problemas</h2>
+      <table>
+        <thead><tr><th data-i18n="problemas_tabla_col1">Mensaje / síntoma</th><th data-i18n="problemas_tabla_col2">Causa probable y solución</th></tr></thead>
+        <tbody>
+          <tr><td data-i18n="problemas_fila1_sintoma">"Autenticación/permisos insuficientes" (HTTP 401/403)</td><td data-i18n="problemas_fila1_causa">Token/usuario/contraseña incorrectos, o la cuenta no tiene capacidad "search" sobre el índice consultado.</td></tr>
+          <tr><td data-i18n="problemas_fila2_sintoma">"No se pudo conectar..." (timeout/red)</td><td data-i18n="problemas_fila2_causa">Verifica que el puerto 8089 (no el 8000 de Splunk Web) esté abierto y accesible desde donde corre Ruvic.</td></tr>
+          <tr><td data-i18n="problemas_fila3_sintoma">Error de certificado TLS</td><td data-i18n="problemas_fila3_causa">Muchas instalaciones de Splunk usan certificados autofirmados en el puerto de administración — considera desactivar "Verificar certificado SSL" solo si confías en la red, o instala un certificado válido.</td></tr>
+          <tr><td data-i18n="problemas_fila4_sintoma">"is_done": false en execute_spl_search</td><td data-i18n="problemas_fila4_causa">La búsqueda no terminó dentro del tiempo de espera configurado — no es un error; usa get_job_results con el sid retornado para consultarla más tarde, o aumenta "Espera máxima por un job".</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2 id="faq-seguridad" data-i18n="faq_h2">Preguntas frecuentes y notas de seguridad</h2>
+      <h3 data-i18n="faq_p1_titulo">¿El agente puede eliminar o modificar eventos?</h3>
+      <p data-i18n="faq_p1_texto">No, por defecto. El conector bloquea automáticamente los comandos SPL de escritura/ejecución salvo que se active esa opción explícitamente.</p>
+
+      <h3 data-i18n="faq_p2_titulo">¿Por qué se recomienda usar token en vez de usuario/contraseña?</h3>
+      <p data-i18n="faq_p2_texto">Un token se puede revocar individualmente sin cambiar la contraseña de una cuenta compartida, y no expone la contraseña real del usuario de servicio en la configuración del conector.</p>
+
+      <h3 data-i18n="faq_p3_titulo">¿Dónde queda guardada la credencial?</h3>
+      <p data-i18n="faq_p3_texto">Como secreto en el almacén de credenciales de la plataforma. La interfaz nunca vuelve a mostrarla.</p>
+
+      <div class="callout callout-warning">
+        <span class="callout-title" data-i18n="buenas_practicas_titulo">Buenas prácticas</span>
+        <span data-i18n="buenas_practicas_texto">Usa un token o usuario dedicado, nunca una cuenta admin; deja el bloqueo de comandos de escritura activado salvo necesidad real; y siempre acota tus búsquedas con earliest_time para no escanear todo el histórico.</span>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.I18N = window.I18N || {};
+    window.I18N['splunk'] = {
+      es: {
+        "toc_titulo": "Contenido",
+        "toc_que_es": "¿Qué es y para qué sirve?",
+        "toc_prerrequisitos": "Prerrequisitos",
+        "toc_fabricante": "Configuración en el fabricante",
+        "toc_permisos": "Permisos requeridos",
+        "toc_ruvic": "Configuración en Ruvic",
+        "toc_verificacion": "Verificación",
+        "toc_problemas": "Solución de problemas",
+        "toc_faq": "Preguntas frecuentes y notas de seguridad",
+        "titulo": "Conector Splunk",
+        "que_es_h2": "¿Qué es y para qué sirve?",
+        "que_es_p1": "El conector Splunk permite que el agente de Ruvic consulte eventos y logs indexados en Splunk — ejecutar búsquedas SPL, explorar qué índices existen, y revisar el resultado de una búsqueda anterior.",
+        "que_es_p2": "Una vez configurado, puedes pedirle al agente cosas como:",
+        "que_es_li1": "\"¿Qué eventos de error hubo en las últimas 4 horas?\"",
+        "que_es_li2": "\"¿Qué índices hay disponibles?\"",
+        "que_es_li3": "\"Revisa el resultado de esa búsqueda que quedó corriendo.\"",
+        "que_es_p3": "Operaciones soportadas:",
+        "tabla_op_col1": "Operación",
+        "tabla_op_col2": "Qué hace",
+        "tabla_op_fila1": "Ejecuta una búsqueda SPL y trae sus resultados",
+        "tabla_op_fila2": "Lista los índices disponibles",
+        "tabla_op_fila3": "Consulta los resultados de un job de búsqueda existente",
+        "callout_seguridad_titulo": "Protección de seguridad incorporada",
+        "callout_seguridad_texto": "Por defecto, este conector bloquea comandos SPL que escriben o ejecutan algo fuera de la propia búsqueda (delete, outputlookup, collect, script, sendemail, etc.) — solo consulta datos.",
+        "prereq_h2": "Prerrequisitos",
+        "prereq_li1": "Un servidor <strong>Splunk</strong> (Enterprise o Cloud) accesible por red desde donde corre Ruvic, con el puerto de administración (8089 por defecto) abierto.",
+        "prereq_li2": "Un <strong>usuario o token dedicado</strong> a esta integración — nunca una cuenta administrativa.",
+        "prereq_li3": "Para pruebas: puedes levantar un Splunk local con Docker en vez de conectarte a un ambiente productivo.",
+        "fabricante_h2": "Configuración en el fabricante",
+        "fabricante_camino_a_titulo": "Camino A — Token de autenticación (recomendado)",
+        "fabricante_a_paso1_titulo": "Pide al administrador de Splunk que cree un token.",
+        "fabricante_a_paso1_texto": "En Splunk Web: Settings → Tokens → New Token, asociado a un usuario de servicio (no admin) con el rol adecuado.",
+        "fabricante_a_paso2_titulo": "Confirma la URL del puerto de administración.",
+        "fabricante_a_paso2_texto": "Normalmente es la misma URL de Splunk Web pero con el puerto 8089 en vez del 8000.",
+        "fabricante_camino_b_titulo": "Camino B — Usuario y contraseña",
+        "fabricante_b_paso1_titulo": "Pide al administrador un usuario de servicio dedicado.",
+        "fabricante_b_paso1_texto": "Con rol \"user\" y capacidad de búsqueda (\"search\") sobre los índices necesarios.",
+        "fabricante_curl_intro": "Prueba desde línea de comandos (opcional pero recomendado):",
+        "fabricante_curl_nota": "Una respuesta con datos de índices confirma que las credenciales funcionan.",
+        "permisos_h2": "Permisos requeridos",
+        "permisos_tabla_col1": "Permiso",
+        "permisos_tabla_col2": "Para qué lo usa el conector",
+        "permisos_search": "Capacidad \"search\" sobre los índices relevantes",
+        "permisos_search_uso": "Necesario para las 3 operaciones",
+        "permisos_nota": "No otorgues el rol \"admin\" — el conector solo necesita poder buscar, no administrar la plataforma.",
+        "ruvic_h2": "Configuración en Ruvic",
+        "ruvic_p1": "Entra a <strong>Settings → Conectores</strong>, busca la tarjeta <strong>Splunk</strong> y pulsa <strong>Configurar</strong>. Elige el modo (token o usuario/contraseña) según lo que tengas.",
+        "ruvic_p2": "Completa la <strong>URL del puerto de administración</strong> (incluyendo <code>:8089</code>) y las credenciales del modo elegido.",
+        "ruvic_p3": "Guarda y pulsa",
+        "boton_probar_conexion": "Probar conexión",
+        "verificacion_h2": "Verificación",
+        "verificacion_paso1_titulo": "Test de conexión exitoso.",
+        "verificacion_paso1_texto": "El botón <em>Probar conexión</em> debe responder: <em>\"Conexión exitosa a [URL] (modo: ...)\"</em>.",
+        "verificacion_paso2_titulo": "Prueba mínima con el agente.",
+        "verificacion_paso2_texto": "Pide algo de solo lectura primero:",
+        "verificacion_paso2_cita": "\"¿Qué índices hay disponibles?\"",
+        "verificacion_docker_intro": "Para probar sin depender de un Splunk productivo, puedes levantar uno local con Docker:",
+        "verificacion_docker_nota": "Espera 1-2 minutos a que Splunk termine de iniciar antes de probar la conexión.",
+        "problemas_h2": "Solución de problemas",
+        "problemas_tabla_col1": "Mensaje / síntoma",
+        "problemas_tabla_col2": "Causa probable y solución",
+        "problemas_fila1_sintoma": "\"Autenticación/permisos insuficientes\" (HTTP 401/403)",
+        "problemas_fila1_causa": "Token/usuario/contraseña incorrectos, o la cuenta no tiene capacidad \"search\" sobre el índice consultado.",
+        "problemas_fila2_sintoma": "\"No se pudo conectar...\" (timeout/red)",
+        "problemas_fila2_causa": "Verifica que el puerto 8089 (no el 8000 de Splunk Web) esté abierto y accesible desde donde corre Ruvic.",
+        "problemas_fila3_sintoma": "Error de certificado TLS",
+        "problemas_fila3_causa": "Muchas instalaciones de Splunk usan certificados autofirmados en el puerto de administración — considera desactivar \"Verificar certificado SSL\" solo si confías en la red, o instala un certificado válido.",
+        "problemas_fila4_sintoma": "\"is_done\": false en execute_spl_search",
+        "problemas_fila4_causa": "La búsqueda no terminó dentro del tiempo de espera configurado — no es un error; usa get_job_results con el sid retornado para consultarla más tarde, o aumenta \"Espera máxima por un job\".",
+        "faq_h2": "Preguntas frecuentes y notas de seguridad",
+        "faq_p1_titulo": "¿El agente puede eliminar o modificar eventos?",
+        "faq_p1_texto": "No, por defecto. El conector bloquea automáticamente los comandos SPL de escritura/ejecución salvo que se active esa opción explícitamente.",
+        "faq_p2_titulo": "¿Por qué se recomienda usar token en vez de usuario/contraseña?",
+        "faq_p2_texto": "Un token se puede revocar individualmente sin cambiar la contraseña de una cuenta compartida, y no expone la contraseña real del usuario de servicio en la configuración del conector.",
+        "faq_p3_titulo": "¿Dónde queda guardada la credencial?",
+        "faq_p3_texto": "Como secreto en el almacén de credenciales de la plataforma. La interfaz nunca vuelve a mostrarla.",
+        "buenas_practicas_titulo": "Buenas prácticas",
+        "buenas_practicas_texto": "Usa un token o usuario dedicado, nunca una cuenta admin; deja el bloqueo de comandos de escritura activado salvo necesidad real; y siempre acota tus búsquedas con earliest_time para no escanear todo el histórico."
+      },
+      en: {
+        "toc_titulo": "Contents",
+        "toc_que_es": "What is it and what is it for?",
+        "toc_prerrequisitos": "Prerequisites",
+        "toc_fabricante": "Vendor-side setup",
+        "toc_permisos": "Required permissions",
+        "toc_ruvic": "Setup in Ruvic",
+        "toc_verificacion": "Verification",
+        "toc_problemas": "Troubleshooting",
+        "toc_faq": "FAQ and security notes",
+        "titulo": "Splunk Connector",
+        "que_es_h2": "What is it and what is it for?",
+        "que_es_p1": "The Splunk connector lets the Ruvic agent query events and logs indexed in Splunk — run SPL searches, explore what indexes exist, and check the result of a previous search.",
+        "que_es_p2": "Once configured, you can ask the agent things like:",
+        "que_es_li1": "\"What error events happened in the last 4 hours?\"",
+        "que_es_li2": "\"What indexes are available?\"",
+        "que_es_li3": "\"Check the result of that search that was still running.\"",
+        "que_es_p3": "Supported operations:",
+        "tabla_op_col1": "Operation",
+        "tabla_op_col2": "What it does",
+        "tabla_op_fila1": "Runs an SPL search and returns its results",
+        "tabla_op_fila2": "Lists available indexes",
+        "tabla_op_fila3": "Checks the results of an existing search job",
+        "callout_seguridad_titulo": "Built-in security protection",
+        "callout_seguridad_texto": "By default, this connector blocks SPL commands that write or execute something outside the search itself (delete, outputlookup, collect, script, sendemail, etc.) — it only queries data.",
+        "prereq_h2": "Prerequisites",
+        "prereq_li1": "A <strong>Splunk</strong> server (Enterprise or Cloud) network-reachable from where Ruvic runs, with the management port (8089 by default) open.",
+        "prereq_li2": "A <strong>dedicated user or token</strong> for this integration — never an administrative account.",
+        "prereq_li3": "For testing: you can spin up a local Splunk with Docker instead of connecting to a production environment.",
+        "fabricante_h2": "Vendor-side setup",
+        "fabricante_camino_a_titulo": "Path A — Authentication token (recommended)",
+        "fabricante_a_paso1_titulo": "Ask the Splunk administrator to create a token.",
+        "fabricante_a_paso1_texto": "In Splunk Web: Settings → Tokens → New Token, tied to a service user (not admin) with the right role.",
+        "fabricante_a_paso2_titulo": "Confirm the management port URL.",
+        "fabricante_a_paso2_texto": "It's usually the same Splunk Web URL but with port 8089 instead of 8000.",
+        "fabricante_camino_b_titulo": "Path B — Username and password",
+        "fabricante_b_paso1_titulo": "Ask the administrator for a dedicated service user.",
+        "fabricante_b_paso1_texto": "With \"user\" role and \"search\" capability over the needed indexes.",
+        "fabricante_curl_intro": "Test from the command line (optional but recommended):",
+        "fabricante_curl_nota": "A response with index data confirms the credentials work.",
+        "permisos_h2": "Required permissions",
+        "permisos_tabla_col1": "Permission",
+        "permisos_tabla_col2": "Why the connector needs it",
+        "permisos_search": "\"search\" capability over the relevant indexes",
+        "permisos_search_uso": "Needed for all 3 operations",
+        "permisos_nota": "Don't grant the \"admin\" role — the connector only needs to search, not administer the platform.",
+        "ruvic_h2": "Setup in Ruvic",
+        "ruvic_p1": "Go to <strong>Settings → Connectors</strong>, find the <strong>Splunk</strong> card and click <strong>Configure</strong>. Choose the mode (token or username/password) based on what you have.",
+        "ruvic_p2": "Fill in the <strong>management port URL</strong> (including <code>:8089</code>) and the credentials for the chosen mode.",
+        "ruvic_p3": "Save and click",
+        "boton_probar_conexion": "Test connection",
+        "verificacion_h2": "Verification",
+        "verificacion_paso1_titulo": "Successful connection test.",
+        "verificacion_paso1_texto": "The <em>Test connection</em> button should return: <em>\"Successful connection to [URL] (mode: ...)\"</em>.",
+        "verificacion_paso2_titulo": "Minimal test with the agent.",
+        "verificacion_paso2_texto": "Ask something read-only first:",
+        "verificacion_paso2_cita": "\"What indexes are available?\"",
+        "verificacion_docker_intro": "To test without relying on a production Splunk, you can spin up a local one with Docker:",
+        "verificacion_docker_nota": "Wait 1-2 minutes for Splunk to finish starting before testing the connection.",
+        "problemas_h2": "Troubleshooting",
+        "problemas_tabla_col1": "Message / symptom",
+        "problemas_tabla_col2": "Likely cause and fix",
+        "problemas_fila1_sintoma": "\"Authentication/insufficient permissions\" (HTTP 401/403)",
+        "problemas_fila1_causa": "Incorrect token/username/password, or the account lacks \"search\" capability over the queried index.",
+        "problemas_fila2_sintoma": "\"Could not connect...\" (timeout/network)",
+        "problemas_fila2_causa": "Verify port 8089 (not the 8000 Splunk Web port) is open and reachable from where Ruvic runs.",
+        "problemas_fila3_sintoma": "TLS certificate error",
+        "problemas_fila3_causa": "Many Splunk installations use self-signed certificates on the management port — consider disabling \"Verify SSL certificate\" only if you trust the network, or install a valid certificate.",
+        "problemas_fila4_sintoma": "\"is_done\": false in execute_spl_search",
+        "problemas_fila4_causa": "The search didn't finish within the configured wait time — this isn't an error; use get_job_results with the returned sid to check it later, or increase \"Maximum wait for a job\".",
+        "faq_h2": "FAQ and security notes",
+        "faq_p1_titulo": "Can the agent delete or modify events?",
+        "faq_p1_texto": "Not by default. The connector automatically blocks write/execute SPL commands unless that option is explicitly enabled.",
+        "faq_p2_titulo": "Why is token recommended over username/password?",
+        "faq_p2_texto": "A token can be individually revoked without changing a shared account's password, and doesn't expose the service user's actual password in the connector's configuration.",
+        "faq_p3_titulo": "Where is the credential stored?",
+        "faq_p3_texto": "As a secret in the platform's credential store. The UI never displays it again.",
+        "buenas_practicas_titulo": "Best practices",
+        "buenas_practicas_texto": "Use a dedicated token or user, never an admin account; leave write-command blocking enabled unless there's a real need; and always scope your searches with earliest_time to avoid scanning the entire history."
+      }
+    };
+  </script>
+</body>
+</html>
